@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, FolderKanban, GitBranch, NotebookPen, Plus, Settings2, Sparkles, StickyNote } from "lucide-react";
 import { useWorkspaceStore } from "@/hooks/use-workspace-store";
 import { formatDate } from "@/lib/utils";
@@ -45,6 +45,28 @@ export const WorkspaceShell = () => {
       { label: "Docs", value: workspace.docs.length.toString() }
     ];
   }, [projects.length, workspace]);
+
+  useEffect(() => {
+    if (!workspace) {
+      return;
+    }
+
+    if (activeFlowNodeId && !workspace.flow.nodes.some((node) => node.id === activeFlowNodeId)) {
+      setActiveFlowNodeId(workspace.flow.nodes[0]?.id ?? "");
+    }
+
+    if (activeNoteId && !workspace.notes.some((note) => note.id === activeNoteId)) {
+      setActiveNoteId(workspace.notes[0]?.id ?? "");
+    }
+
+    if (activeDocId && !workspace.docs.some((doc) => doc.id === activeDocId)) {
+      setActiveDocId(workspace.docs[0]?.id ?? "");
+    }
+
+    if (activeCardId && !workspace.kanban.cards.some((card) => card.id === activeCardId)) {
+      setActiveCardId(workspace.kanban.cards[0]?.id ?? "");
+    }
+  }, [activeCardId, activeDocId, activeFlowNodeId, activeNoteId, workspace]);
 
   if (!workspace) {
     return <main className="min-h-screen p-6">Loading...</main>;
@@ -157,6 +179,8 @@ export const WorkspaceShell = () => {
               onUpdateNode={workspaceStore.updateFlowNode}
               onMoveNode={workspaceStore.moveFlowNode}
               onAddConnection={workspaceStore.addFlowConnection}
+              onRemoveConnection={workspaceStore.removeFlowConnection}
+              onDeleteNode={workspaceStore.deleteFlowNode}
               onPickNote={(noteId) => {
                 setActiveNoteId(noteId);
                 setActiveSection("notes");

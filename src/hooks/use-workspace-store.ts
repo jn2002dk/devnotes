@@ -230,6 +230,41 @@ export const useWorkspaceStore = () => {
     });
   };
 
+  const removeFlowConnection = (connectionId: string) => {
+    updateWorkspace((current) => ({
+      ...current,
+      flow: {
+        ...current.flow,
+        connections: current.flow.connections.filter((connection) => connection.id !== connectionId)
+      }
+    }));
+  };
+
+  const deleteFlowNode = (nodeId: string) => {
+    updateWorkspace((current) => ({
+      ...current,
+      flow: {
+        nodes: current.flow.nodes.filter((node) => node.id !== nodeId),
+        connections: current.flow.connections.filter(
+          (connection) => connection.from !== nodeId && connection.to !== nodeId
+        )
+      },
+      notes: current.notes.map((note) => ({
+        ...note,
+        links: {
+          ...note.links,
+          flowNodeIds: note.links.flowNodeIds.filter((linkedNodeId) => linkedNodeId !== nodeId)
+        }
+      })),
+      kanban: {
+        cards: current.kanban.cards.map((card) => ({
+          ...card,
+          linkedFlowNodeId: card.linkedFlowNodeId === nodeId ? "" : card.linkedFlowNodeId
+        }))
+      }
+    }));
+  };
+
   const addNote = () => {
     updateWorkspace((current) => ({
       ...current,
@@ -349,6 +384,8 @@ export const useWorkspaceStore = () => {
     updateFlowNode,
     moveFlowNode,
     addFlowConnection,
+    removeFlowConnection,
+    deleteFlowNode,
     addNote,
     updateNote,
     addDoc,
