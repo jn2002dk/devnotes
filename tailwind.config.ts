@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Arial", "Helvetica", "sans-serif"]
+      },
       colors: {
         canvas: "#f6f1e8",
         ink: "#172121",

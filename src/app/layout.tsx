@@ -1,17 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
-
-const headingFont = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-heading"
-});
-
-const bodyFont = Source_Serif_4({
-  subsets: ["latin"],
-  variable: "--font-body"
-});
 
 export const metadata: Metadata = {
   title: "Devnotes Planner",
@@ -29,7 +18,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
+    <html lang="en">
       <body style={{ fontFamily: "var(--font-body)" }}>
         <ServiceWorkerRegistration />
         {children}
