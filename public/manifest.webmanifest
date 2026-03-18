@@ -1,0 +1,17 @@
+{
+  "name": "Devnotes Planner",
+  "short_name": "Devnotes",
+  "description": "Local-first planning workspace for personal software development.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f1e8",
+  "theme_color": "#f6f1e8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

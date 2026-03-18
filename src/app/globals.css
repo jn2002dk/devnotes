@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #f6f1e8;
+  --ink: #172121;
+  --paper: rgba(255, 252, 247, 0.85);
+  --accent: #fb923c;
+  --signal: #1f6f78;
+  --plum: #7c3a66;
+  --moss: #6f7d38;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(31, 111, 120, 0.14), transparent 35%),
+    linear-gradient(180deg, #fbf6ee 0%, #f1e7d5 100%);
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.panel {
+  @apply rounded-[28px] border border-black/10 bg-white/70 shadow-panel backdrop-blur;
+}
+
+.panel-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(23, 33, 33, 0.08) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+
+.field {
+  @apply w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-black/30 focus:ring-2 focus:ring-orange-200;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full border border-black/10 bg-black/5 px-3 py-1 text-xs font-medium;
+}
+
+.section-title {
+  @apply text-sm uppercase tracking-[0.24em] text-black/55;
+}
