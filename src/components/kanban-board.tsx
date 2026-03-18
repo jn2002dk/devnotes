@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { DndContext, DragEndEvent, PointerSensor, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { KanbanCard, KanbanColumnId, ProjectWorkspace } from "@/types/workspace";
 
@@ -22,6 +22,7 @@ interface KanbanBoardProps {
   onCardSelect: (cardId: string) => void;
   onAddCard: () => void;
   onUpdateCard: (cardId: string, updater: (card: KanbanCard) => KanbanCard) => void;
+  onDeleteCard: (cardId: string) => void;
   onMoveCard: (cardId: string, columnId: KanbanColumnId) => void;
   onJumpToFlow: (nodeId: string) => void;
   onJumpToNote: (noteId: string) => void;
@@ -79,13 +80,14 @@ export const KanbanBoard = ({
   onCardSelect,
   onAddCard,
   onUpdateCard,
+  onDeleteCard,
   onMoveCard,
   onJumpToFlow,
   onJumpToNote,
   onJumpToDoc
 }: KanbanBoardProps) => {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-  const activeCard = workspace.kanban.cards.find((card) => card.id === activeCardId) ?? workspace.kanban.cards[0];
+  const activeCard = workspace.kanban.cards.find((card) => card.id === activeCardId) ?? workspace.kanban.cards[0] ?? null;
 
   const cardsByColumn = useMemo(
     () => columns.reduce<Record<KanbanColumnId, KanbanCard[]>>((accumulator, column) => {
@@ -111,6 +113,32 @@ export const KanbanBoard = ({
       onMoveCard(activeId, destinationColumn);
     }
   };
+
+  if (!activeCard) {
+    return (
+      <div className="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="rounded-[28px] border border-black/10 bg-[#fffaf4] p-4 shadow-panel">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="section-title">Kanban</p>
+              <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Execution board</h2>
+            </div>
+            <button type="button" onClick={onAddCard} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+          </div>
+          <div className="flex min-h-[680px] items-center justify-center text-center text-black/60">
+            <div>
+              <p className="section-title">No cards yet</p>
+              <p className="mt-3 text-sm">Create a card to start turning plans into execution work.</p>
+            </div>
+          </div>
+        </section>
+
+        <aside className="panel flex items-center justify-center p-8">
+          <button type="button" onClick={onAddCard} className="rounded-[24px] bg-black px-5 py-4 text-sm font-semibold text-white">Create card</button>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -145,8 +173,13 @@ export const KanbanBoard = ({
       </section>
 
       <aside className="panel p-4">
-        <p className="section-title">Card details</p>
-        <h3 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>{activeCard.title}</h3>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="section-title">Card details</p>
+            <h3 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>{activeCard.title}</h3>
+          </div>
+          <button type="button" onClick={() => onDeleteCard(activeCard.id)} className="rounded-full border border-black/10 bg-[#f8efe3] p-2 text-black/70"><Trash2 className="h-4 w-4" /></button>
+        </div>
         <div className="mt-4 space-y-4">
           <input className="field" value={activeCard.title} onChange={(event) => onUpdateCard(activeCard.id, (card) => ({ ...card, title: event.target.value }))} />
           <textarea className="field min-h-[140px]" value={activeCard.description} onChange={(event) => onUpdateCard(activeCard.id, (card) => ({ ...card, description: event.target.value }))} />

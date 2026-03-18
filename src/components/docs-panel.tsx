@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Plus, ScrollText } from "lucide-react";
+import { Plus, ScrollText, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ProjectWorkspace } from "@/types/workspace";
@@ -14,10 +14,36 @@ interface DocsPanelProps {
   onDocSelect: (docId: string) => void;
   onAddDoc: (template: "blank" | "prd" | "feature-spec" | "launch-checklist") => void;
   onUpdateDoc: (docId: string, updater: (doc: ProjectWorkspace["docs"][number]) => ProjectWorkspace["docs"][number]) => void;
+  onDeleteDoc: (docId: string) => void;
 }
 
-export const DocsPanel = ({ workspace, activeDocId, onDocSelect, onAddDoc, onUpdateDoc }: DocsPanelProps) => {
-  const activeDoc = workspace.docs.find((doc) => doc.id === activeDocId) ?? workspace.docs[0];
+export const DocsPanel = ({ workspace, activeDocId, onDocSelect, onAddDoc, onUpdateDoc, onDeleteDoc }: DocsPanelProps) => {
+  const activeDoc = workspace.docs.find((doc) => doc.id === activeDocId) ?? workspace.docs[0] ?? null;
+
+  if (!activeDoc) {
+    return (
+      <div className="grid h-full gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="panel-grid rounded-[28px] border border-black/10 bg-[#e9f3f1] p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="section-title">Markdown docs</p>
+              <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Structured project assets</h2>
+            </div>
+            <button type="button" onClick={() => onAddDoc("blank")} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+          </div>
+        </aside>
+
+        <section className="panel flex items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <p className="section-title">No docs yet</p>
+            <h3 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Create the first project doc</h3>
+            <p className="mt-4 text-sm text-black/65">Use markdown docs for briefs, specs, and checklists that stay linked to notes and execution work.</p>
+            <button type="button" onClick={() => onAddDoc("blank")} className="mt-6 rounded-[24px] bg-black px-5 py-4 text-sm font-semibold text-white">Create doc</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="grid h-full gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -27,8 +53,9 @@ export const DocsPanel = ({ workspace, activeDocId, onDocSelect, onAddDoc, onUpd
             <p className="section-title">Markdown docs</p>
             <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Structured project assets</h2>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
             <button type="button" onClick={() => onAddDoc("blank")} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+            <button type="button" onClick={() => onDeleteDoc(activeDoc.id)} className="rounded-full border border-black/10 bg-white p-3 text-black/70"><Trash2 className="h-4 w-4" /></button>
           </div>
         </div>
 
@@ -57,7 +84,10 @@ export const DocsPanel = ({ workspace, activeDocId, onDocSelect, onAddDoc, onUpd
               <p className="section-title">Editor</p>
               <h3 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>{activeDoc.title}</h3>
             </div>
-            <ScrollText className="h-5 w-5 text-black/40" />
+            <div className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5 text-black/40" />
+              <button type="button" onClick={() => onDeleteDoc(activeDoc.id)} className="rounded-full border border-black/10 bg-[#eef5f3] p-2 text-black/70"><Trash2 className="h-4 w-4" /></button>
+            </div>
           </div>
           <div className="mb-4 grid gap-3 md:grid-cols-2">
             <input className="field" value={activeDoc.title} onChange={(event) => onUpdateDoc(activeDoc.id, (doc) => ({ ...doc, title: event.target.value }))} />

@@ -199,6 +199,7 @@ export const WorkspaceShell = () => {
               onNoteSelect={setActiveNoteId}
               onAddNote={workspaceStore.addNote}
               onUpdateNote={workspaceStore.updateNote}
+              onDeleteNote={workspaceStore.deleteNote}
               onJumpToFlow={(nodeId) => {
                 setActiveFlowNodeId(nodeId);
                 setActiveSection("flows");
@@ -221,6 +222,7 @@ export const WorkspaceShell = () => {
               onDocSelect={setActiveDocId}
               onAddDoc={workspaceStore.addDoc}
               onUpdateDoc={workspaceStore.updateDoc}
+              onDeleteDoc={workspaceStore.deleteDoc}
             />
           ) : null}
 
@@ -231,6 +233,7 @@ export const WorkspaceShell = () => {
               onCardSelect={setActiveCardId}
               onAddCard={workspaceStore.addCard}
               onUpdateCard={workspaceStore.updateCard}
+              onDeleteCard={workspaceStore.deleteCard}
               onMoveCard={workspaceStore.moveCard}
               onJumpToFlow={(nodeId) => {
                 setActiveFlowNodeId(nodeId);

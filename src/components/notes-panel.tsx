@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { NoteItem, ProjectWorkspace } from "@/types/workspace";
 
 interface NotesPanelProps {
@@ -9,6 +9,7 @@ interface NotesPanelProps {
   onNoteSelect: (noteId: string) => void;
   onAddNote: () => void;
   onUpdateNote: (noteId: string, updater: (note: NoteItem) => NoteItem) => void;
+  onDeleteNote: (noteId: string) => void;
   onJumpToFlow: (nodeId: string) => void;
   onJumpToDoc: (docId: string) => void;
   onJumpToCard: (cardId: string) => void;
@@ -20,11 +21,43 @@ export const NotesPanel = ({
   onNoteSelect,
   onAddNote,
   onUpdateNote,
+  onDeleteNote,
   onJumpToFlow,
   onJumpToDoc,
   onJumpToCard
 }: NotesPanelProps) => {
-  const activeNote = workspace.notes.find((note) => note.id === activeNoteId) ?? workspace.notes[0];
+  const activeNote = workspace.notes.find((note) => note.id === activeNoteId) ?? workspace.notes[0] ?? null;
+
+  if (!activeNote) {
+    return (
+      <div className="grid h-full gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="panel-grid rounded-[28px] border border-black/10 bg-[#f7efe4] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="section-title">Notes</p>
+              <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Loose ideas and research</h2>
+            </div>
+            <button type="button" onClick={onAddNote} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+          </div>
+        </aside>
+
+        <section className="panel flex items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <p className="section-title">No notes yet</p>
+            <h3 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>
+              Start a fresh note
+            </h3>
+            <p className="mt-4 text-sm text-black/65">
+              Capture ideas, research snippets, or next steps and link them back to flows, docs, and cards.
+            </p>
+            <button type="button" onClick={onAddNote} className="mt-6 rounded-[24px] bg-black px-5 py-4 text-sm font-semibold text-white">
+              Create note
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const toggleLink = (kind: "flowNodeIds" | "docIds" | "cardIds", targetId: string) => {
     onUpdateNote(activeNote.id, (note) => {
@@ -48,7 +81,10 @@ export const NotesPanel = ({
             <p className="section-title">Notes</p>
             <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Loose ideas and research</h2>
           </div>
-          <button type="button" onClick={onAddNote} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+          <div className="flex gap-2">
+            <button type="button" onClick={onAddNote} className="rounded-full bg-black p-3 text-white"><Plus className="h-4 w-4" /></button>
+            <button type="button" onClick={() => onDeleteNote(activeNote.id)} className="rounded-full border border-black/10 bg-white p-3 text-black/70"><Trash2 className="h-4 w-4" /></button>
+          </div>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -67,6 +103,12 @@ export const NotesPanel = ({
       <section className="panel p-5">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="section-title">Editor</p>
+              <button type="button" onClick={() => onDeleteNote(activeNote.id)} className="rounded-full border border-black/10 bg-[#f8efe3] p-2 text-black/70">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
             <label>
               <span className="mb-2 block text-sm font-semibold">Title</span>
               <input className="field" value={activeNote.title} onChange={(event) => onUpdateNote(activeNote.id, (note) => ({ ...note, title: event.target.value }))} />

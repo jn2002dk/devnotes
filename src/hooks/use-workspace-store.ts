@@ -295,6 +295,30 @@ export const useWorkspaceStore = () => {
     }));
   };
 
+  const deleteNote = (noteId: string) => {
+    updateWorkspace((current) => ({
+      ...current,
+      notes: current.notes.filter((note) => note.id !== noteId),
+      flow: {
+        ...current.flow,
+        nodes: current.flow.nodes.map((node) => ({
+          ...node,
+          noteIds: node.noteIds.filter((linkedNoteId) => linkedNoteId !== noteId)
+        }))
+      },
+      docs: current.docs.map((doc) => ({
+        ...doc,
+        linkedNoteIds: doc.linkedNoteIds.filter((linkedNoteId) => linkedNoteId !== noteId)
+      })),
+      kanban: {
+        cards: current.kanban.cards.map((card) => ({
+          ...card,
+          linkedNoteId: card.linkedNoteId === noteId ? "" : card.linkedNoteId
+        }))
+      }
+    }));
+  };
+
   const addDoc = (template: DocItem["template"]) => {
     updateWorkspace((current) => {
       const title = template === "blank" ? "Untitled doc" : template.replace(/-/g, " ");
@@ -325,6 +349,33 @@ export const useWorkspaceStore = () => {
       docs: current.docs.map((doc) =>
         doc.id === docId ? { ...updater(doc), updatedAt: new Date().toISOString() } : doc
       )
+    }));
+  };
+
+  const deleteDoc = (docId: string) => {
+    updateWorkspace((current) => ({
+      ...current,
+      docs: current.docs.filter((doc) => doc.id !== docId),
+      flow: {
+        ...current.flow,
+        nodes: current.flow.nodes.map((node) => ({
+          ...node,
+          docIds: node.docIds.filter((linkedDocId) => linkedDocId !== docId)
+        }))
+      },
+      notes: current.notes.map((note) => ({
+        ...note,
+        links: {
+          ...note.links,
+          docIds: note.links.docIds.filter((linkedDocId) => linkedDocId !== docId)
+        }
+      })),
+      kanban: {
+        cards: current.kanban.cards.map((card) => ({
+          ...card,
+          linkedDocId: card.linkedDocId === docId ? "" : card.linkedDocId
+        }))
+      }
     }));
   };
 
@@ -360,6 +411,26 @@ export const useWorkspaceStore = () => {
     }));
   };
 
+  const deleteCard = (cardId: string) => {
+    updateWorkspace((current) => ({
+      ...current,
+      notes: current.notes.map((note) => ({
+        ...note,
+        links: {
+          ...note.links,
+          cardIds: note.links.cardIds.filter((linkedCardId) => linkedCardId !== cardId)
+        }
+      })),
+      docs: current.docs.map((doc) => ({
+        ...doc,
+        linkedCardIds: doc.linkedCardIds.filter((linkedCardId) => linkedCardId !== cardId)
+      })),
+      kanban: {
+        cards: current.kanban.cards.filter((card) => card.id !== cardId)
+      }
+    }));
+  };
+
   const moveCard = (cardId: string, columnId: KanbanColumnId) => {
     updateCard(cardId, (card) => ({ ...card, columnId }));
   };
@@ -388,10 +459,13 @@ export const useWorkspaceStore = () => {
     deleteFlowNode,
     addNote,
     updateNote,
+    deleteNote,
     addDoc,
     updateDoc,
+    deleteDoc,
     addCard,
     updateCard,
+    deleteCard,
     moveCard
   };
 };
