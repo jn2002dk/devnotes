@@ -1,17 +1,39 @@
 "use client";
 
 import { ChangeEvent } from "react";
-import { Download, Upload } from "lucide-react";
-import { downloadWorkspace, readWorkspaceFile } from "@/lib/storage";
-import { ProjectWorkspace } from "@/types/workspace";
+import { Copy, Download, Plus, Trash2, Upload } from "lucide-react";
+import {
+  downloadWorkspace,
+  downloadWorkspaceCollection,
+  readWorkspaceFile
+} from "@/lib/storage";
+import { ProjectWorkspace, WorkspaceCollection } from "@/types/workspace";
 
 interface SettingsPanelProps {
   workspace: ProjectWorkspace;
+  projects: ProjectWorkspace[];
+  collection: WorkspaceCollection | null;
+  activeProjectId: string;
+  onSelectProject: (projectId: string) => void;
+  onCreateProject: () => void;
+  onDuplicateProject: (projectId: string) => void;
+  onDeleteProject: (projectId: string) => void;
   onUpdateProject: (updater: (project: ProjectWorkspace) => ProjectWorkspace) => void;
-  onImport: (project: ProjectWorkspace) => void;
+  onImport: (payload: ProjectWorkspace | WorkspaceCollection) => void;
 }
 
-export const SettingsPanel = ({ workspace, onUpdateProject, onImport }: SettingsPanelProps) => {
+export const SettingsPanel = ({
+  workspace,
+  projects,
+  collection,
+  activeProjectId,
+  onSelectProject,
+  onCreateProject,
+  onDuplicateProject,
+  onDeleteProject,
+  onUpdateProject,
+  onImport
+}: SettingsPanelProps) => {
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -28,6 +50,50 @@ export const SettingsPanel = ({ workspace, onUpdateProject, onImport }: Settings
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="panel p-5">
         <p className="section-title">Workspace settings</p>
+        <div className="mt-5 rounded-[28px] bg-[#f6edde] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Project library</p>
+              <p className="text-sm text-black/60">Switch, duplicate, archive, or delete from one place.</p>
+            </div>
+            <button type="button" onClick={onCreateProject} className="rounded-full bg-black p-3 text-white">
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {projects.map((project) => (
+              <div key={project.id} className={`rounded-[24px] border p-4 ${project.id === activeProjectId ? "border-black bg-black text-white" : "border-black/10 bg-white/80"}`}>
+                <button type="button" onClick={() => onSelectProject(project.id)} className="w-full text-left">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{project.name}</p>
+                      <p className={`mt-1 text-sm ${project.id === activeProjectId ? "text-white/65" : "text-black/60"}`}>{project.summary}</p>
+                    </div>
+                    {project.settings.archived ? <span className="badge">Archived</span> : null}
+                  </div>
+                </button>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => onDuplicateProject(project.id)} className={`rounded-full px-3 py-2 text-sm ${project.id === activeProjectId ? "bg-white/10" : "bg-[#f3ecdf]"}`}>
+                    <Copy className="mr-2 inline h-4 w-4" />
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteProject(project.id)}
+                    disabled={projects.length === 1}
+                    className={`rounded-full px-3 py-2 text-sm ${projects.length === 1 ? "cursor-not-allowed opacity-50" : project.id === activeProjectId ? "bg-white/10" : "bg-[#f3ecdf]"}`}
+                  >
+                    <Trash2 className="mr-2 inline h-4 w-4" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label>
             <span className="mb-2 block text-sm font-semibold">Project name</span>
@@ -59,17 +125,26 @@ export const SettingsPanel = ({ workspace, onUpdateProject, onImport }: Settings
         <p className="section-title">JSON storage</p>
         <h2 className="mt-2 text-3xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Local-first data control</h2>
         <p className="mt-4 text-sm text-black/65">
-          The workspace auto-saves in your browser. Export the full JSON file whenever you want a portable backup or import an existing project workspace.
+          The app auto-saves the whole project library in your browser. Export either the active project or the full collection, and import either format later.
         </p>
 
         <div className="mt-6 space-y-3">
           <button type="button" onClick={() => downloadWorkspace(workspace)} className="flex w-full items-center justify-between rounded-[24px] bg-black px-5 py-4 text-white">
-            Export workspace JSON
+            Export active project JSON
+            <Download className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => collection && downloadWorkspaceCollection(collection)}
+            className="flex w-full items-center justify-between rounded-[24px] border border-black/10 bg-white/85 px-5 py-4"
+          >
+            Export full project library
             <Download className="h-4 w-4" />
           </button>
 
           <label className="flex cursor-pointer items-center justify-between rounded-[24px] border border-black/10 bg-white/85 px-5 py-4">
-            Import workspace JSON
+            Import project or library JSON
             <Upload className="h-4 w-4" />
             <input type="file" accept="application/json" className="hidden" onChange={handleImport} />
           </label>

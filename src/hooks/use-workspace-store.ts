@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { loadWorkspace, saveWorkspace } from "@/lib/storage";
+import { useEffect, useMemo, useState } from "react";
+import { createProjectWorkspace } from "@/data/defaultWorkspace";
+import {
+  loadWorkspaceCollection,
+  normalizeWorkspaceCollection,
+  saveWorkspaceCollection
+} from "@/lib/storage";
 import { createId, slugify } from "@/lib/utils";
 import { docTemplates } from "@/lib/templates";
 import {
@@ -12,7 +17,8 @@ import {
   KanbanCard,
   KanbanColumnId,
   NoteItem,
-  ProjectWorkspace
+  ProjectWorkspace,
+  WorkspaceCollection
 } from "@/types/workspace";
 
 const withTimestamp = (workspace: ProjectWorkspace): ProjectWorkspace => ({
@@ -21,20 +27,140 @@ const withTimestamp = (workspace: ProjectWorkspace): ProjectWorkspace => ({
 });
 
 export const useWorkspaceStore = () => {
-  const [workspace, setWorkspace] = useState<ProjectWorkspace | null>(null);
+  const [collection, setCollection] = useState<WorkspaceCollection | null>(null);
 
   useEffect(() => {
-    setWorkspace(loadWorkspace());
+    setCollection(loadWorkspaceCollection());
   }, []);
 
   useEffect(() => {
-    if (workspace) {
-      saveWorkspace(workspace);
+    if (collection) {
+      saveWorkspaceCollection(collection);
     }
-  }, [workspace]);
+  }, [collection]);
+
+  const workspace = useMemo(() => {
+    if (!collection) {
+      return null;
+    }
+
+    return (
+      collection.projects.find((project) => project.id === collection.activeProjectId) ??
+      collection.projects[0] ??
+      null
+    );
+  }, [collection]);
+
+  const updateCollection = (updater: (current: WorkspaceCollection) => WorkspaceCollection) => {
+    setCollection((current) =>
+      current
+        ? normalizeWorkspaceCollection({
+            ...updater(current),
+            version: 1,
+            updatedAt: new Date().toISOString()
+          })
+        : current
+    );
+  };
 
   const updateWorkspace = (updater: (current: ProjectWorkspace) => ProjectWorkspace) => {
-    setWorkspace((current) => (current ? withTimestamp(updater(current)) : current));
+    updateCollection((current) => ({
+      ...current,
+      projects: current.projects.map((project) =>
+        project.id === current.activeProjectId ? withTimestamp(updater(project)) : project
+      )
+    }));
+  };
+
+  const setActiveProject = (projectId: string) => {
+    updateCollection((current) => ({
+      ...current,
+      activeProjectId: current.projects.some((project) => project.id === projectId)
+        ? projectId
+        : current.activeProjectId
+    }));
+  };
+
+  const createProject = () => {
+    updateCollection((current) => {
+      const nextProject = createProjectWorkspace({
+        name: `Project ${current.projects.length + 1}`,
+        summary: "Capture flows, notes, docs, and delivery plans for a new personal software project."
+      });
+
+      return {
+        ...current,
+        activeProjectId: nextProject.id,
+        projects: [nextProject, ...current.projects]
+      };
+    });
+  };
+
+  const duplicateProject = (projectId: string) => {
+    updateCollection((current) => {
+      const source = current.projects.find((project) => project.id === projectId);
+
+      if (!source) {
+        return current;
+      }
+
+      const duplicate: ProjectWorkspace = {
+        ...JSON.parse(JSON.stringify(source)),
+        id: `workspace-${slugify(source.name)}-${createId("copy")}`,
+        name: `${source.name} Copy`,
+        updatedAt: new Date().toISOString(),
+        settings: {
+          ...source.settings,
+          archived: false
+        }
+      };
+
+      return {
+        ...current,
+        activeProjectId: duplicate.id,
+        projects: [duplicate, ...current.projects]
+      };
+    });
+  };
+
+  const deleteProject = (projectId: string) => {
+    updateCollection((current) => {
+      if (current.projects.length === 1) {
+        return current;
+      }
+
+      const projects = current.projects.filter((project) => project.id !== projectId);
+
+      return {
+        ...current,
+        activeProjectId:
+          current.activeProjectId === projectId ? projects[0].id : current.activeProjectId,
+        projects
+      };
+    });
+  };
+
+  const importPayload = (payload: ProjectWorkspace | WorkspaceCollection) => {
+    if ("projects" in payload) {
+      setCollection(normalizeWorkspaceCollection(payload));
+      return;
+    }
+
+    setCollection((current) => {
+      const base = current ?? loadWorkspaceCollection();
+      const importedProject: ProjectWorkspace = {
+        ...payload,
+        id: `workspace-${slugify(payload.name)}-${createId("import")}`,
+        updatedAt: new Date().toISOString()
+      };
+
+      return normalizeWorkspaceCollection({
+        ...base,
+        activeProjectId: importedProject.id,
+        updatedAt: new Date().toISOString(),
+        projects: [importedProject, ...base.projects]
+      });
+    });
   };
 
   const addFlowNode = (type: FlowNodeType) => {
@@ -208,8 +334,16 @@ export const useWorkspaceStore = () => {
   };
 
   return {
+    collection,
+    projects: collection?.projects ?? [],
+    activeProjectId: collection?.activeProjectId ?? "",
     workspace,
-    setWorkspace,
+    setCollection,
+    setActiveProject,
+    createProject,
+    duplicateProject,
+    deleteProject,
+    importPayload,
     updateProject,
     addFlowNode,
     updateFlowNode,

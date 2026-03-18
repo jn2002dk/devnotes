@@ -81,3 +81,10 @@ export interface ProjectWorkspace {
   };
   settings: ProjectSettings;
 }
+
+export interface WorkspaceCollection {
+  version: 1;
+  activeProjectId: string;
+  updatedAt: string;
+  projects: ProjectWorkspace[];
+}

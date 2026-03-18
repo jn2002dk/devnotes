@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, FolderKanban, GitBranch, NotebookPen, Settings2, Sparkles, StickyNote } from "lucide-react";
+import { ArrowRight, FolderKanban, GitBranch, NotebookPen, Plus, Settings2, Sparkles, StickyNote } from "lucide-react";
 import { useWorkspaceStore } from "@/hooks/use-workspace-store";
 import { formatDate } from "@/lib/utils";
 import { WorkspaceSection } from "@/types/workspace";
@@ -31,6 +31,7 @@ export const WorkspaceShell = () => {
   const [activeCardId, setActiveCardId] = useState<string>("");
 
   const workspace = workspaceStore.workspace;
+  const projects = workspaceStore.projects;
 
   const stats = useMemo(() => {
     if (!workspace) {
@@ -38,12 +39,12 @@ export const WorkspaceShell = () => {
     }
 
     return [
+      { label: "Projects", value: projects.length.toString() },
       { label: "Flow nodes", value: workspace.flow.nodes.length.toString() },
       { label: "Notes", value: workspace.notes.length.toString() },
-      { label: "Docs", value: workspace.docs.length.toString() },
-      { label: "Active cards", value: workspace.kanban.cards.filter((card) => card.columnId !== "done").length.toString() }
+      { label: "Docs", value: workspace.docs.length.toString() }
     ];
-  }, [workspace]);
+  }, [projects.length, workspace]);
 
   if (!workspace) {
     return <main className="min-h-screen p-6">Loading...</main>;
@@ -54,15 +55,54 @@ export const WorkspaceShell = () => {
       <div className="mx-auto grid max-w-[1600px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="panel panel-grid overflow-hidden p-5">
           <div className="mb-8">
-            <p className="section-title">Workspace</p>
-            <h1
-              className="mt-3 text-4xl leading-none"
-              style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}
-            >
-              {workspace.name}
-            </h1>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="section-title">Workspace</p>
+                <h1
+                  className="mt-3 text-4xl leading-none"
+                  style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}
+                >
+                  {workspace.name}
+                </h1>
+              </div>
+              <button type="button" onClick={workspaceStore.createProject} className="rounded-full bg-black p-3 text-white">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
             <p className="mt-4 text-sm text-black/70">{workspace.summary}</p>
             <p className="mt-4 text-xs text-black/55">Updated {formatDate(workspace.updatedAt)}</p>
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="section-title">Projects</p>
+              <span className="badge">{projects.length}</span>
+            </div>
+            <div className="space-y-2">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => workspaceStore.setActiveProject(project.id)}
+                  className={clsx(
+                    "w-full rounded-2xl border px-4 py-3 text-left transition",
+                    project.id === workspaceStore.activeProjectId
+                      ? "border-black bg-black text-white shadow-card"
+                      : "border-black/10 bg-white/70 hover:bg-white"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{project.name}</p>
+                      <p className={clsx("mt-1 line-clamp-2 text-xs", project.id === workspaceStore.activeProjectId ? "text-white/65" : "text-black/55")}>
+                        {project.summary}
+                      </p>
+                    </div>
+                    {project.settings.archived ? <span className="badge border-white/10 bg-white/10 text-white">Archived</span> : null}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <nav className="space-y-2">
@@ -184,7 +224,18 @@ export const WorkspaceShell = () => {
           ) : null}
 
           {activeSection === "settings" ? (
-            <SettingsPanel workspace={workspace} onUpdateProject={workspaceStore.updateProject} onImport={workspaceStore.setWorkspace} />
+            <SettingsPanel
+              workspace={workspace}
+              projects={projects}
+              collection={workspaceStore.collection}
+              activeProjectId={workspaceStore.activeProjectId}
+              onSelectProject={workspaceStore.setActiveProject}
+              onCreateProject={workspaceStore.createProject}
+              onDuplicateProject={workspaceStore.duplicateProject}
+              onDeleteProject={workspaceStore.deleteProject}
+              onUpdateProject={workspaceStore.updateProject}
+              onImport={workspaceStore.importPayload}
+            />
           ) : null}
         </section>
       </div>
