@@ -13,6 +13,10 @@ self.addEventListener("fetch", (event) => {
 
   const requestUrl = new URL(event.request.url);
 
+  if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
+    return;
+  }
+
   if (requestUrl.pathname.startsWith("/api/")) {
     event.respondWith(fetch(event.request));
     return;
@@ -26,8 +30,12 @@ self.addEventListener("fetch", (event) => {
 
       return fetch(event.request)
         .then((response) => {
+          if (!response.ok || requestUrl.origin !== self.location.origin) {
+            return response;
+          }
+
           const copy = response.clone();
-          caches.open("devnotes-shell-v1").then((cache) => cache.put(event.request, copy));
+          caches.open("devnotes-shell-v1").then((cache) => cache.put(event.request, copy).catch(() => undefined));
           return response;
         })
         .catch(() => caches.match("/"));
