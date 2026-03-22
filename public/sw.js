@@ -1,9 +1,25 @@
+const SHELL_CACHE = "devnotes-shell-v2";
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open("devnotes-shell-v1").then((cache) =>
+    caches.open(SHELL_CACHE).then((cache) =>
       cache.addAll(["/", "/manifest.webmanifest", "/icon.svg"])
     )
   );
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== SHELL_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -35,7 +51,7 @@ self.addEventListener("fetch", (event) => {
           }
 
           const copy = response.clone();
-          caches.open("devnotes-shell-v1").then((cache) => cache.put(event.request, copy).catch(() => undefined));
+          caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, copy).catch(() => undefined));
           return response;
         })
         .catch(() => caches.match("/"));
