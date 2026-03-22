@@ -1,11 +1,12 @@
 {
   "name": "devnotes-planner",
   "version": "0.1.0",
+  "main": "app.js",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node app.js",
     "lint": "next lint"
   },
   "dependencies": {
