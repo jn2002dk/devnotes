@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createProjectWorkspace } from "@/data/defaultWorkspace";
 import {
+  fetchWorkspaceCollection,
+  hasCachedWorkspaceCollection,
   loadWorkspaceCollection,
   normalizeWorkspaceCollection,
-  saveWorkspaceCollection
+  saveWorkspaceCollection,
+  saveWorkspaceCollectionToServer
 } from "@/lib/storage";
 import { createId, slugify } from "@/lib/utils";
 import { docTemplates } from "@/lib/templates";
@@ -26,17 +29,159 @@ const withTimestamp = (workspace: ProjectWorkspace): ProjectWorkspace => ({
   updatedAt: new Date().toISOString()
 });
 
+type SyncStatus = "idle" | "loading" | "saving" | "saved" | "error";
+
 export const useWorkspaceStore = () => {
   const [collection, setCollection] = useState<WorkspaceCollection | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("loading");
+  const [syncMessage, setSyncMessage] = useState("Loading workspace from MariaDB...");
+  const hasHydratedRef = useRef(false);
+  const lastPersistedRef = useRef<string | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveRequestIdRef = useRef(0);
 
   useEffect(() => {
-    setCollection(loadWorkspaceCollection());
+    let cancelled = false;
+
+    const hydrateCollection = async () => {
+      setIsLoading(true);
+      setSyncStatus("loading");
+      setSyncMessage("Loading workspace from MariaDB...");
+
+      const hasCache = hasCachedWorkspaceCollection();
+      const cachedCollection = loadWorkspaceCollection();
+
+      try {
+        const { collection: serverCollection, hasPersisted } = await fetchWorkspaceCollection();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!hasPersisted && hasCache) {
+          setCollection(cachedCollection);
+          saveWorkspaceCollection(cachedCollection);
+
+          try {
+            const savedCollection = await saveWorkspaceCollectionToServer(cachedCollection);
+
+            if (cancelled) {
+              return;
+            }
+
+            const serialized = JSON.stringify(savedCollection);
+
+            lastPersistedRef.current = serialized;
+            setCollection(savedCollection);
+            saveWorkspaceCollection(savedCollection);
+            setSyncStatus("saved");
+            setSyncMessage("Migrated your cached workspace into MariaDB.");
+          } catch {
+            if (cancelled) {
+              return;
+            }
+
+            lastPersistedRef.current = null;
+            setSyncStatus("error");
+            setSyncMessage("Using your cached workspace because MariaDB could not be updated.");
+          }
+        } else {
+          const serialized = JSON.stringify(serverCollection);
+
+          lastPersistedRef.current = serialized;
+          setCollection(serverCollection);
+          saveWorkspaceCollection(serverCollection);
+          setSyncStatus(hasPersisted ? "saved" : "idle");
+          setSyncMessage(
+            hasPersisted
+              ? "All changes are stored in MariaDB."
+              : "MariaDB is ready. Your first edit will create the initial workspace snapshot."
+          );
+        }
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        const serialized = JSON.stringify(cachedCollection);
+
+        lastPersistedRef.current = hasCache ? null : serialized;
+        setCollection(cachedCollection);
+        saveWorkspaceCollection(cachedCollection);
+        setSyncStatus(hasCache ? "error" : "idle");
+        setSyncMessage(
+          hasCache
+            ? "MariaDB is unavailable right now. Using cached browser data until sync succeeds."
+            : "MariaDB is unavailable right now. You can keep working and the app will retry on save."
+        );
+      } finally {
+        if (!cancelled) {
+          hasHydratedRef.current = true;
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void hydrateCollection();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (collection) {
-      saveWorkspaceCollection(collection);
+    if (!collection || !hasHydratedRef.current) {
+      return;
     }
+
+    const serialized = JSON.stringify(collection);
+
+    saveWorkspaceCollection(collection);
+
+    if (serialized === lastPersistedRef.current) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    setSyncStatus("saving");
+    setSyncMessage("Saving changes to MariaDB...");
+
+    const requestId = saveRequestIdRef.current + 1;
+
+    saveRequestIdRef.current = requestId;
+    saveTimeoutRef.current = setTimeout(() => {
+      void saveWorkspaceCollectionToServer(collection)
+        .then((savedCollection) => {
+          if (saveRequestIdRef.current !== requestId) {
+            return;
+          }
+
+          lastPersistedRef.current = JSON.stringify(savedCollection);
+          saveWorkspaceCollection(savedCollection);
+          setCollection(savedCollection);
+          setSyncStatus("saved");
+          setSyncMessage("All changes are stored in MariaDB.");
+        })
+        .catch(() => {
+          if (saveRequestIdRef.current !== requestId) {
+            return;
+          }
+
+          setSyncStatus("error");
+          setSyncMessage("Changes are cached locally, but MariaDB sync failed.");
+        });
+    }, 700);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
   }, [collection]);
 
   const workspace = useMemo(() => {
@@ -441,6 +586,9 @@ export const useWorkspaceStore = () => {
 
   return {
     collection,
+    isLoading,
+    syncStatus,
+    syncMessage,
     projects: collection?.projects ?? [],
     activeProjectId: collection?.activeProjectId ?? "",
     workspace,

@@ -14,6 +14,8 @@ interface SettingsPanelProps {
   projects: ProjectWorkspace[];
   collection: WorkspaceCollection | null;
   activeProjectId: string;
+  syncStatus: "idle" | "loading" | "saving" | "saved" | "error";
+  syncMessage: string;
   onSelectProject: (projectId: string) => void;
   onCreateProject: () => void;
   onDuplicateProject: (projectId: string) => void;
@@ -27,6 +29,8 @@ export const SettingsPanel = ({
   projects,
   collection,
   activeProjectId,
+  syncStatus,
+  syncMessage,
   onSelectProject,
   onCreateProject,
   onDuplicateProject,
@@ -122,11 +126,15 @@ export const SettingsPanel = ({
       </section>
 
       <aside className="panel-grid rounded-[28px] border border-black/10 bg-[#f5ecde] p-5">
-        <p className="section-title">JSON storage</p>
-        <h2 className="mt-2 text-3xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>Local-first data control</h2>
+        <p className="section-title">Database storage</p>
+        <h2 className="mt-2 text-3xl" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>MariaDB-backed persistence</h2>
         <p className="mt-4 text-sm text-black/65">
-          The app auto-saves the whole project library in your browser. Export either the active project or the full collection, and import either format later.
+          Your full project library now saves to MariaDB on the host. JSON import and export stay available for migration, backups, and manual snapshots.
         </p>
+
+        <div className={`mt-4 rounded-[24px] px-4 py-3 text-sm ${syncStatus === "error" ? "bg-[#fff1eb] text-[#9d4328]" : syncStatus === "saved" ? "bg-[#ebf6ef] text-[#2c6b46]" : "bg-white/80 text-black/65"}`}>
+          {syncMessage}
+        </div>
 
         <div className="mt-6 space-y-3">
           <button type="button" onClick={() => downloadWorkspace(workspace)} className="flex w-full items-center justify-between rounded-[24px] bg-black px-5 py-4 text-white">

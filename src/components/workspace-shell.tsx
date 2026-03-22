@@ -68,8 +68,18 @@ export const WorkspaceShell = () => {
     }
   }, [activeCardId, activeDocId, activeFlowNodeId, activeNoteId, workspace]);
 
-  if (!workspace) {
-    return <main className="min-h-screen p-6">Loading...</main>;
+  if (workspaceStore.isLoading || !workspace) {
+    return (
+      <main className="min-h-screen px-4 py-4 md:px-6 md:py-6">
+        <div className="mx-auto max-w-[900px] rounded-[32px] border border-black/10 bg-white/80 p-8 shadow-card">
+          <p className="section-title">Workspace</p>
+          <h1 className="mt-3 text-4xl leading-none" style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.05em" }}>
+            Loading your library
+          </h1>
+          <p className="mt-4 max-w-xl text-sm text-black/65">{workspaceStore.syncMessage}</p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -93,6 +103,16 @@ export const WorkspaceShell = () => {
             </div>
             <p className="mt-4 text-sm text-black/70">{workspace.summary}</p>
             <p className="mt-4 text-xs text-black/55">Updated {formatDate(workspace.updatedAt)}</p>
+            <p className={clsx(
+              "mt-2 text-xs",
+              workspaceStore.syncStatus === "error"
+                ? "text-[#b24a2c]"
+                : workspaceStore.syncStatus === "saving" || workspaceStore.syncStatus === "loading"
+                  ? "text-black/55"
+                  : "text-[#2c6b46]"
+            )}>
+              {workspaceStore.syncMessage}
+            </p>
           </div>
 
           <div className="mb-6">
@@ -256,6 +276,8 @@ export const WorkspaceShell = () => {
               projects={projects}
               collection={workspaceStore.collection}
               activeProjectId={workspaceStore.activeProjectId}
+              syncStatus={workspaceStore.syncStatus}
+              syncMessage={workspaceStore.syncMessage}
               onSelectProject={workspaceStore.setActiveProject}
               onCreateProject={workspaceStore.createProject}
               onDuplicateProject={workspaceStore.duplicateProject}
